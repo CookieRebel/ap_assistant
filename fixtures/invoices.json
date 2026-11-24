@@ -1,0 +1,29 @@
+{
+  "invoices": [
+    {"invoice_ref": "INV-1001", "invoice_number": "INV-1001", "vendor_id": "V-100", "currency": "AUD", "po_number": "PO-4001",
+     "remit_to_last4": "4417",
+     "lines": [{"line_no": 1, "description": "Printer toner", "quantity": "40", "unit_price": "45.20"},
+               {"line_no": 2, "description": "Copy paper (box)", "quantity": "60", "unit_price": "22.50"}],
+     "tax": "315.80", "gross": "3473.80"},
+    {"invoice_ref": "INV-2002", "invoice_number": "INV-2002", "vendor_id": "V-200", "currency": "AUD", "po_number": "PO-4002",
+     "remit_to_last4": "7120",
+     "lines": [{"line_no": 1, "description": "Consulting retainer, August", "quantity": "1", "unit_price": "8000.00"}],
+     "tax": "800.00", "gross": "8800.00"},
+    {"invoice_ref": "INV-3003", "invoice_number": "INV-3003", "vendor_id": "V-300", "currency": "AUD", "po_number": "PO-4003",
+     "remit_to_last4": "8842",
+     "lines": [{"line_no": 1, "description": "Network maintenance, Q3", "quantity": "1", "unit_price": "11500.00"}],
+     "tax": "1150.00", "gross": "12650.00"},
+    {"invoice_ref": "INV-4004", "invoice_number": "INV-4004", "vendor_id": "V-400", "currency": "AUD", "po_number": "PO-4004",
+     "remit_to_last4": "1133",
+     "lines": [{"line_no": 1, "description": "Safety equipment", "quantity": "20", "unit_price": "190.00"}],
+     "tax": "380.00", "gross": "4180.00"},
+    {"invoice_ref": "INV-5005", "invoice_number": "INV-5005", "vendor_id": "V-100", "currency": "AUD", "po_number": "PO-4005",
+     "remit_to_last4": "4417",
+     "lines": [{"line_no": 1, "description": "Whiteboard markers (pack)", "quantity": "200", "unit_price": "12.50"}],
+     "tax": "250.00", "gross": "2750.00"}
+  ],
+  "history": [
+    {"history_id": "HIST-0091", "vendor_id": "V-200", "invoice_number": "inv 2002", "currency": "AUD", "amount": "8800.00", "status": "PAID"},
+    {"history_id": "HIST-0042", "vendor_id": "V-100", "invoice_number": "INV-0977", "currency": "AUD", "amount": "1210.00", "status": "PAID"}
+  ]
+}

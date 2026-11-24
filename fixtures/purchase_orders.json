@@ -1,0 +1,19 @@
+[
+  {"po_number": "PO-4001", "vendor_id": "V-100", "currency": "AUD", "category": "goods", "approval_status": "APPROVED",
+   "lines": [{"line_no": 1, "description": "Printer toner", "quantity": "40", "unit_price": "45.00"},
+             {"line_no": 2, "description": "Copy paper (box)", "quantity": "60", "unit_price": "22.50"}],
+   "receipts": [{"receipt_id": "GR-4001", "line_no": 1, "quantity_received": "40"},
+                {"receipt_id": "GR-4001", "line_no": 2, "quantity_received": "60"}]},
+  {"po_number": "PO-4002", "vendor_id": "V-200", "currency": "AUD", "category": "services", "approval_status": "APPROVED",
+   "lines": [{"line_no": 1, "description": "Consulting retainer, August", "quantity": "1", "unit_price": "8000.00"}],
+   "receipts": [{"receipt_id": "SR-4002", "line_no": 1, "quantity_received": "1"}]},
+  {"po_number": "PO-4003", "vendor_id": "V-300", "currency": "AUD", "category": "services", "approval_status": "APPROVED",
+   "lines": [{"line_no": 1, "description": "Network maintenance, Q3", "quantity": "1", "unit_price": "11500.00"}],
+   "receipts": [{"receipt_id": "SR-4003", "line_no": 1, "quantity_received": "1"}]},
+  {"po_number": "PO-4004", "vendor_id": "V-400", "currency": "AUD", "category": "goods", "approval_status": "APPROVED",
+   "lines": [{"line_no": 1, "description": "Safety equipment", "quantity": "20", "unit_price": "190.00"}],
+   "receipts": []},
+  {"po_number": "PO-4005", "vendor_id": "V-100", "currency": "AUD", "category": "goods", "approval_status": "APPROVED",
+   "lines": [{"line_no": 1, "description": "Whiteboard markers (pack)", "quantity": "200", "unit_price": "12.50"}],
+   "receipts": [{"receipt_id": "GR-4005", "line_no": 1, "quantity_received": "200"}]}
+]

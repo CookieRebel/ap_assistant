@@ -1,0 +1,6 @@
+[
+  {"vendor_id": "V-100", "name": "Northwind Office Supplies", "status": "ACTIVE", "bank_account": "062000-10234417", "risk_flags": [], "last_updated": "2026-03-14T09:00:00Z"},
+  {"vendor_id": "V-200", "name": "Blue Gum Consulting", "status": "ACTIVE", "bank_account": "083000-55017120", "risk_flags": [], "last_updated": "2026-05-02T11:30:00Z"},
+  {"vendor_id": "V-300", "name": "Harbour Networks", "status": "ACTIVE", "bank_account": "033000-71902290", "risk_flags": [], "last_updated": "2026-01-20T08:15:00Z"},
+  {"vendor_id": "V-400", "name": "Southern Safety Gear", "status": "ACTIVE", "bank_account": "012000-44381133", "risk_flags": [], "last_updated": "2026-06-11T14:45:00Z"}
+]
