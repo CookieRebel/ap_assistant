@@ -15,6 +15,9 @@ class Outcome(str, Enum):
 
 class RunState(str, Enum):
     RECEIVED = "RECEIVED"
+    EVIDENCE_COLLECTED = "EVIDENCE_COLLECTED"
+    RECOMMENDED = "RECOMMENDED"
+    GROUNDING_FAILED = "GROUNDING_FAILED"
     AWAITING_APPROVAL = "AWAITING_APPROVAL"
     SUBMITTED = "SUBMITTED"
     REJECTED_BY_APPROVER = "REJECTED_BY_APPROVER"
@@ -111,6 +114,60 @@ class Approver(BaseModel):
     approver_id: str
     name: str
     role: str
+
+
+class Evidence(BaseModel):
+    """The results of the three lookups, saved at EVIDENCE_COLLECTED. None = the tool gave no result."""
+
+    history: InvoiceHistory | None
+    vendor: VendorRecord | None
+    po: PurchaseOrder | None
+
+
+# --- Policy corpus ----------------------------------------------------------------
+
+
+class Chunk(BaseModel):
+    """One `##` section of a corpus document. chunk_id = <document_id>#<section>."""
+
+    chunk_id: str
+    document_id: str
+    document_type: Literal["policy", "external"]
+    title: str
+    version: str
+    status: str
+    classification: str
+    section: str
+    heading: str
+    source: str
+    text: str
+
+    @property
+    def citation(self) -> str:
+        return f"{self.document_id} v{self.version} §{self.section} {self.heading}".rstrip()
+
+
+class RetrievedChunk(Chunk):
+    score: float
+
+
+class Citation(BaseModel):
+    """A citation as the user sees it. The code fills every field except quote and finding from the chunk."""
+
+    document_id: str
+    title: str
+    version: str
+    section: str
+    heading: str
+    quote: str
+    finding: str
+    chunk_id: str
+
+
+class Grounding(BaseModel):
+    model: str
+    explanation: str
+    citations: list[Citation]
 
 
 # --- Reconciliation and recommendation ------------------------------------------

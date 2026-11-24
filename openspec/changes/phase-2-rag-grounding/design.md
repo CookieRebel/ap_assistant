@@ -36,7 +36,7 @@ src/ap_assistant/
 
 - `ModelClient.complete(messages, tools) -> ModelReply` (text or tool calls). The workflow knows only this protocol.
 - `OpenAIModel` uses the `openai` SDK chat completions with tool calling, `timeout=30`, `max_retries=2`. The provider is OpenAI; `AP_LLM_BASE_URL` is optional and defaults to the OpenAI API.
-- `OfflineModel` is chosen when `AP_LLM_MODEL` is unset or `offline`. Turn 1: one retrieval per required policy, with the query `<document_id> <category>`. Turn 2: for each, the top chunk of that document, its first sentence as the quote, and a fixed explanation. It passes validation by construction, so an offline eval proves the plumbing, not model quality.
+- `OfflineModel` is chosen when `AP_LLM_MODEL` is unset or `offline`. Turn 1: one retrieval per required citation, with the query `<document_id> <finding> <finding detail>` and `top_k=10`. Turn 2: for each, the expected section if it was retrieved (else the top chunk of that document), the line or sentence that shares most words with the finding as the quote, and a fixed explanation. It passes validation by construction, so an offline eval proves the plumbing, not model quality.
 
 ### Grounding loop
 
@@ -52,7 +52,7 @@ There is no fallback that writes a grounding without the model. FIN-POL-003 §5 
 - Schema: `{"explanation": str, "citations": [{"chunk_id", "quote", "finding"}]}` with pydantic; extra keys such as `outcome` are rejected.
 - Quotes are compared after collapsing whitespace.
 - Required citations: the document of each failed finding's policy label, plus `FIN-POL-003` for `APPROVE_FOR_POSTING`.
-- Numbers: every `\d[\d,]*(\.\d+)?` in the explanation, with commas removed, must appear in the recommendation JSON or a cited quote. Integers up to 10 are exempt (line numbers, section numbers, counts).
+- Numbers: every `\d[\d,]*(\.\d+)?` in the explanation, with commas removed, must appear in the recommendation JSON or a cited quote. Integers up to 10 are exempt (line numbers, section numbers, counts). A number that is part of an identifier, such as `FIN-POL-012`, `HIST-0091` or `v2.4`, is not checked.
 
 ### Steps and resume
 

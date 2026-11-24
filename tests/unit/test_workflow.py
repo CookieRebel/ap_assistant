@@ -3,21 +3,92 @@ from pathlib import Path
 import pytest
 
 from ap_assistant import workflow
+from ap_assistant.ingest import read_corpus
+from ap_assistant.llm import ModelReply
 from ap_assistant.schemas import CaseRequest
 from ap_assistant.store import Store
-from ap_assistant.workflow import WorkflowError
+from ap_assistant.workflow import SimulatedCrash, WorkflowError
 
-CASES = Path(__file__).parents[2] / "fixtures" / "cases"
+ROOT = Path(__file__).parents[2]
+CASES = ROOT / "fixtures" / "cases"
+
+
+def ingested_store(path):
+    store = Store(path)
+    store.replace_chunks(read_corpus(ROOT / "corpus"))
+    return store
 
 
 @pytest.fixture
 def store(tmp_path):
-    return Store(tmp_path / "ap.db")
+    return ingested_store(tmp_path / "ap.db")
 
 
-def start(store, case_id):
-    request = CaseRequest.model_validate_json((CASES / f"{case_id}.json").read_text())
-    return workflow.start(store, request)
+def request(case_id):
+    return CaseRequest.model_validate_json((CASES / f"{case_id}.json").read_text())
+
+
+def start(store, case_id, **kwargs):
+    return workflow.start(store, request(case_id), **kwargs)
+
+
+class BrokenModel:
+    name = "broken"
+
+    def complete(self, messages, tools):
+        return ModelReply(text="not json")
+
+
+def tool_attempts(run):
+    return [e["tool"] for e in run["events"] if e["type"] == "tool_attempt"]
+
+
+def test_start_without_chunks_is_refused(tmp_path):
+    with pytest.raises(WorkflowError, match="ap_assistant ingest"):
+        start(Store(tmp_path / "empty.db"), "FIN-001")
+
+
+def test_start_grounds_the_recommendation(store):
+    run = start(store, "FIN-001")
+
+    assert run["grounding"]["model"] == "offline"
+    assert run["grounding"]["citations"][0]["document_id"] == "FIN-POL-003"
+
+
+def test_crash_after_evidence_resumes_without_repeated_lookups(store):
+    with pytest.raises(SimulatedCrash):
+        start(store, "FIN-001", crash_after="EVIDENCE_COLLECTED")
+    assert workflow.get_run(store, "RUN-001")["state"] == "EVIDENCE_COLLECTED"
+
+    run = workflow.resume(store, "RUN-001")
+
+    run = workflow.get_run(store, "RUN-001", with_events=True)
+    assert run["state"] == "AWAITING_APPROVAL"
+    assert run["recommendation"]["outcome"] == "APPROVE_FOR_POSTING"
+    assert sorted(tool_attempts(run)) == ["check_invoice_history", "get_purchase_order", "get_vendor_record"]
+
+
+def test_failed_grounding_blocks_approval_and_resumes_at_grounding(store):
+    run = start(store, "FIN-001", model=BrokenModel())
+    assert run["state"] == "GROUNDING_FAILED"
+    assert run["grounding"] is None
+    assert "not valid JSON" in run["error"]
+    with pytest.raises(WorkflowError):
+        workflow.approve(store, run["run_id"], "colin", "cb-1")
+
+    workflow.resume(store, run["run_id"])
+
+    run = workflow.get_run(store, run["run_id"], with_events=True)
+    assert run["state"] == "AWAITING_APPROVAL"
+    assert run["error"] is None
+    assert len(tool_attempts(run)) == 3
+
+
+def test_resume_of_a_waiting_run_is_refused(store):
+    run_id = start(store, "FIN-001")["run_id"]
+
+    with pytest.raises(WorkflowError, match="only a run that stopped"):
+        workflow.resume(store, run_id)
 
 
 def test_run_ids_are_sequential(store):
@@ -117,7 +188,7 @@ def test_submit_without_approval_is_refused(store):
 
 
 def test_run_survives_a_new_process(tmp_path):
-    run_id = start(Store(tmp_path / "ap.db"), "FIN-001")["run_id"]
+    run_id = start(ingested_store(tmp_path / "ap.db"), "FIN-001")["run_id"]
 
     reopened = Store(tmp_path / "ap.db")
     response = workflow.approve(reopened, run_id, "colin", "cb-1")

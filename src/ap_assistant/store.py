@@ -7,13 +7,17 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ap_assistant.schemas import Chunk
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
     run_id TEXT PRIMARY KEY,
     case_id TEXT NOT NULL,
     state TEXT NOT NULL,
     request_json TEXT NOT NULL,
+    evidence_json TEXT,
     recommendation_json TEXT,
+    grounding_json TEXT,
     error TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -42,7 +46,15 @@ CREATE TABLE IF NOT EXISTS decisions (
     callback_id TEXT NOT NULL REFERENCES approvals (callback_id),
     submitted_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS chunks (
+    chunk_id TEXT PRIMARY KEY,
+    chunk_json TEXT NOT NULL
+);
 """
+
+# Columns added after phase 1. A data/ap.db created by phase 1 gets them on open.
+ADDED_RUN_COLUMNS = ["evidence_json", "grounding_json"]
+RUN_JSON_COLUMNS = {"evidence_json", "recommendation_json", "grounding_json"}
 
 
 def now() -> str:
@@ -56,6 +68,11 @@ class Store:
         self.conn = sqlite3.connect(path, isolation_level=None)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        self.chunk_index = None  # the BM25 index, built by retrieval.index_for() on first use
+        existing = {row["name"] for row in self.conn.execute("PRAGMA table_info(runs)")}
+        for column in ADDED_RUN_COLUMNS:
+            if column not in existing:
+                self.conn.execute(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
@@ -85,15 +102,38 @@ class Store:
             )
         return run_id
 
-    def update_run(self, run_id: str, state: str, recommendation_json: str | None = None, error: str | None = None) -> None:
+    def update_run(self, run_id: str, state: str, error: str | None = None, **json_columns: str) -> None:
+        """Sets the state and the error (None clears it), plus any of evidence_json, recommendation_json, grounding_json."""
+        unknown = set(json_columns) - RUN_JSON_COLUMNS
+        if unknown:
+            raise ValueError(f"not a run JSON column: {unknown}")
+        assignments = ", ".join(f"{column} = ?" for column in json_columns)
         self.conn.execute(
-            "UPDATE runs SET state = ?, recommendation_json = COALESCE(?, recommendation_json), error = ?, updated_at = ?"
-            " WHERE run_id = ?",
-            (state, recommendation_json, error, now(), run_id),
+            f"UPDATE runs SET state = ?, error = ?, updated_at = ?{', ' if assignments else ''}{assignments} WHERE run_id = ?",
+            (state, error, now(), *json_columns.values(), run_id),
         )
 
     def get_run(self, run_id: str) -> sqlite3.Row | None:
         return self.conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+
+    # --- chunks ---
+
+    def replace_chunks(self, chunks: list[Chunk]) -> None:
+        """Replaces all chunks in one transaction."""
+        with self.transaction():
+            self.conn.execute("DELETE FROM chunks")
+            self.conn.executemany(
+                "INSERT INTO chunks (chunk_id, chunk_json) VALUES (?, ?)",
+                [(c.chunk_id, c.model_dump_json()) for c in chunks],
+            )
+        self.chunk_index = None
+
+    def list_chunks(self) -> list[Chunk]:
+        rows = self.conn.execute("SELECT chunk_json FROM chunks ORDER BY rowid").fetchall()
+        return [Chunk.model_validate_json(r["chunk_json"]) for r in rows]
+
+    def has_chunks(self) -> bool:
+        return self.conn.execute("SELECT 1 FROM chunks LIMIT 1").fetchone() is not None
 
     # --- events ---
 

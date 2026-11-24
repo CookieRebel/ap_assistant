@@ -1,0 +1,10 @@
+[
+  {"query": "price variance tolerance for goods and services", "expected": "FIN-POL-002#2"},
+  {"query": "invoice without a goods receipt cannot be approved", "expected": "FIN-POL-002#4"},
+  {"query": "approval limit for a cost centre manager", "expected": "FIN-POL-003#2"},
+  {"query": "changed bank account needs two approvals from financial control", "expected": "FIN-POL-003#3"},
+  {"query": "exact match to a paid invoice is a duplicate", "expected": "FIN-POL-005#2"},
+  {"query": "invoices for blocked or dormant vendors must be held", "expected": "FIN-POL-004#4"},
+  {"query": "payment instructions must match the verified vendor master", "expected": "FIN-POL-001#5"},
+  {"query": "foreign currency conversion rate for an invoice", "expected": "FIN-POL-009#2"}
+]
