@@ -67,7 +67,7 @@ One SQLite file, `data/ap.db`: `runs` (state, request, evidence, recommendation,
 |---|---|---|
 | Model | OpenAI chat completions with tool calling, or the offline model | `AP_LLM_MODEL`, `OPENAI_API_KEY` in `.env` |
 | Agent runtime | plain Python state graph (`workflow.py`, `grounding.py`) | budget constants in `grounding.py` |
-| Document store and index | `chunks` table, BM25 in memory (`rank-bm25`) | `ap_assistant ingest [CORPUS_DIR]` |
+| Document store and index | `chunks` table, BM25 in memory (`rank-bm25`) | `ap_assistant ingest` |
 | Persistence | SQLite | `data/ap.db` |
 | Tools | `tools.py`, `financial_document_retrieval.py`, `submit_finance_decision` in `workflow.py` | `fixtures/`, `fixtures/faults.json` |
 | API surface | CLI (`typer`) | see the README |
@@ -75,7 +75,7 @@ One SQLite file, `data/ap.db`: `runs` (state, request, evidence, recommendation,
 ## Production changes
 
 - **Identity and authority:** authenticated approvers; roles and delegations from the real authority register, with its version recorded on each approval (FIN-POL-003 §4, §5); the two-approver rule for higher-risk payments.
-- **Rules and policy versions:** check at startup that the policy version each rule cites matches the ingested corpus, and refuse to run on a mismatch. Move stable values, such as limits and tolerances, into versioned configuration.
+- **Rules and policy versions:** check at startup that the policy version each rule cites matches the ingested corpus, and refuse to run on a mismatch.
 - **Integrations:** real ERP and vendor-master APIs behind the same tool contracts; a sandboxed posting API with idempotency keys that are unique across environments.
 - **Infrastructure:** Postgres instead of SQLite; approval callbacks through a queue; secrets in a secrets manager; OpenTelemetry traces from the existing events.
 - **Retrieval:** a hybrid of BM25 and embeddings, and access control by document classification.

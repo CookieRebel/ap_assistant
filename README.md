@@ -4,6 +4,40 @@ A command-line accounts-payable assistant. For one invoice case, it looks up the
 
 The design note is in [docs/design_note.md](docs/design_note.md). Two captured runs are in [docs/transcripts/](docs/transcripts/).
 
+## Quick start
+
+Prerequisite: uv, the Python package manager. It installs Python 3.11 if it is missing. No API key is needed for the offline mode.
+
+```bash
+brew install uv                      # macOS; on Linux: curl -LsSf https://astral.sh/uv/install.sh | sh
+cp .env.example .env                 # AP_LLM_MODEL=offline needs no key
+uv sync                              # install the locked dependencies
+uv run ap_assistant ingest           # chunk the policy corpus into data/ap.db
+uv run ap_assistant eval --offline   # run the five cases and the retrieval checks
+```
+
+One case by hand:
+
+```bash
+uv run ap_assistant start fixtures/cases/FIN-001.json
+uv run ap_assistant get RUN-001
+uv run ap_assistant approve RUN-001 --approver alice
+# error: alice has role AP_MANAGER, which may not decide APPROVE_FOR_POSTING; required: COST_CENTRE_MANAGER
+uv run ap_assistant approve RUN-001 --approver colin
+uv run ap_assistant reject RUN-001 --approver alice
+# error: run RUN-001 is SUBMITTED, not AWAITING_APPROVAL
+uv run ap_assistant get RUN-001 --events
+```
+
+## Configuration
+
+The CLI reads `.env` from the folder it runs in. A value in `.env` wins over the same variable in the shell.
+
+| Variable | Value | Purpose |
+|---|---|---|
+| `AP_LLM_MODEL` | `offline`, or an OpenAI model name with tool calling | `offline` runs a deterministic stand-in: no network, no key, no cost. The captured transcripts used `gpt-5.4`. |
+| `OPENAI_API_KEY` | your key | Needed only for an OpenAI model. |
+
 ## Design decisions
 
 ### Deterministic core, LLM only for grounding
@@ -53,34 +87,6 @@ sequenceDiagram
 
 - The workflow saves the run in SQLite (`store.py`) after each step, so a stopped run can resume.
 - `approve` records the approval and submits the decision once. `reject` records the rejection and submits nothing.
-
-## Quick start
-
-Prerequisites: [uv](https://docs.astral.sh/uv/). It installs Python 3.11 if it is missing. No API key is needed for the offline mode.
-
-```bash
-cp .env.example .env                 # AP_LLM_MODEL=offline needs no key
-uv sync                              # install the locked dependencies
-uv run ap_assistant ingest           # chunk the policy corpus into data/ap.db
-uv run ap_assistant eval --offline   # run the five cases and the retrieval checks
-```
-
-One case by hand:
-
-```bash
-uv run ap_assistant start fixtures/cases/FIN-001.json
-uv run ap_assistant approve RUN-001 --approver colin
-uv run ap_assistant get RUN-001 --events
-```
-
-## Configuration
-
-The CLI reads `.env` from the folder it runs in. A value in `.env` wins over the same variable in the shell.
-
-| Variable | Value | Purpose |
-|---|---|---|
-| `AP_LLM_MODEL` | `offline`, or an OpenAI model name with tool calling | `offline` runs a deterministic stand-in: no network, no key, no cost. The captured transcripts used `gpt-5.4`. |
-| `OPENAI_API_KEY` | your key | Needed only for an OpenAI model. |
 
 ## Commands
 
