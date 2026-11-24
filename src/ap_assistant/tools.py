@@ -1,4 +1,4 @@
-"""The three simulated read-only tools over fixtures/, and call_tool(), which adds the timeout and retry.
+"""The three simulated read-only tools over fixtures/, the approver lookup, and call_tool(), which adds the timeout and retry.
 
 All tools are simulated: they read JSON files. fixtures/faults.json makes a call hang, to test the timeout.
 """
@@ -15,7 +15,7 @@ from pathlib import Path
 from pydantic import BaseModel
 from tenacity import Retrying, retry_if_exception_type, stop_after_attempt
 
-from ap_assistant.schemas import HistoryRecord, Invoice, InvoiceHistory, PurchaseOrder, VendorRecord
+from ap_assistant.schemas import Approver, HistoryRecord, Invoice, InvoiceHistory, PurchaseOrder, VendorRecord
 
 FIXTURES = Path(os.environ.get("AP_FIXTURES", Path(__file__).parents[2] / "fixtures"))
 TIMEOUT_SECONDS = 1.0
@@ -81,6 +81,12 @@ def get_purchase_order(po_number: str) -> PurchaseOrder:
     _apply_fault("get_purchase_order", po_number)
     raw = next(p for p in _load("purchase_orders.json") if p["po_number"] == po_number)
     return PurchaseOrder.model_validate(raw)
+
+
+def get_approver(approver_id: str) -> Approver | None:
+    """Looks up the approver's role in the simulated authority register. Returns None for an unknown approver."""
+    raw = next((a for a in _load("approvers.json") if a["approver_id"] == approver_id), None)
+    return Approver.model_validate(raw) if raw else None
 
 
 def _run_with_timeout(fn: Callable[[str], BaseModel], arg: str, timeout: float) -> BaseModel:

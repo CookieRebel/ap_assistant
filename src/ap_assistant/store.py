@@ -70,12 +70,20 @@ class Store:
 
     # --- runs ---
 
-    def create_run(self, run_id: str, case_id: str, state: str, request_json: str) -> None:
+    def create_run(self, case_id: str, state: str, request_json: str) -> str:
+        """Inserts a run with the next sequential ID (RUN-001, RUN-002, …) and returns that ID.
+
+        The transaction holds the write lock, so two processes cannot take the same number.
+        """
         ts = now()
-        self.conn.execute(
-            "INSERT INTO runs (run_id, case_id, state, request_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (run_id, case_id, state, request_json, ts, ts),
-        )
+        with self.transaction():
+            next_no = self.conn.execute("SELECT COALESCE(MAX(rowid), 0) + 1 FROM runs").fetchone()[0]
+            run_id = f"RUN-{next_no:03d}"
+            self.conn.execute(
+                "INSERT INTO runs (run_id, case_id, state, request_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (run_id, case_id, state, request_json, ts, ts),
+            )
+        return run_id
 
     def update_run(self, run_id: str, state: str, recommendation_json: str | None = None, error: str | None = None) -> None:
         self.conn.execute(
@@ -109,6 +117,14 @@ class Store:
             "INSERT INTO approvals (callback_id, run_id, approver_id, role, decision, created_at) VALUES (?, ?, ?, ?, ?, ?)",
             (callback_id, run_id, approver_id, role, decision, now()),
         )
+
+    def list_approvals(self, run_id: str) -> list[dict]:
+        """The approvals and rejections of a run, without the stored response."""
+        rows = self.conn.execute(
+            "SELECT approver_id, role, decision, callback_id, created_at FROM approvals WHERE run_id = ? ORDER BY created_at",
+            (run_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
     def set_approval_response(self, callback_id: str, response: dict) -> None:
         self.conn.execute(

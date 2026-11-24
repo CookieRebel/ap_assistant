@@ -7,10 +7,10 @@ Processes one invoice case: looks up the evidence, reconciles it against policy 
 ## ADDED Requirements
 
 ### Requirement: Start a run
-`ap start <case.json>` SHALL validate the request (`case_id`, `invoice_ref`, `vendor_id`, `amount`, `currency`, optional `notes` and `attachments`), create a run, process it, and print the run as JSON. An invalid request SHALL be refused with exit code 1 and no run.
+`ap_assistant start <case.json>` SHALL validate the request (`case_id`, `invoice_ref`, `vendor_id`, `amount`, `currency`, optional `notes` and `attachments`), create a run with the next sequential ID (`RUN-001`, `RUN-002`, …), process it, and print the run as JSON. An invalid request SHALL be refused with exit code 1 and no run.
 
 #### Scenario: Valid case
-- **WHEN** the operator runs `ap start fixtures/cases/FIN-001.json`
+- **WHEN** the operator runs `ap_assistant start fixtures/cases/FIN-001.json`
 - **THEN** the run ends in state `AWAITING_APPROVAL` and the JSON shows the recommendation
 
 #### Scenario: Invalid case
@@ -61,33 +61,40 @@ The outcome SHALL be the most severe failed outcome (`REJECT_DUPLICATE` > `HOLD_
 - **THEN** the required role is `COST_CENTRE_MANAGER`
 
 ### Requirement: Approve or reject
-`ap approve RUN_ID --approver ID --role ROLE --callback-id ID` SHALL be refused unless the run is `AWAITING_APPROVAL` and the role is allowed. An accepted approval SHALL call `submit_finance_decision` with the idempotency key `<run_id>:<outcome>` and move the run to `SUBMITTED`. `ap reject` SHALL move the run to `REJECTED_BY_APPROVER` and submit nothing. Nothing SHALL be submitted without an approval.
+`ap_assistant approve RUN_ID --approver ID [--callback-id ID]` and `ap_assistant reject` (same options) SHALL be refused unless the run is `AWAITING_APPROVAL`, the approver is in the register and the role is allowed. An accepted approval SHALL call `submit_finance_decision` with the idempotency key `<run_id>:<outcome>` and move the run to `SUBMITTED`. `ap_assistant reject` SHALL move the run to `REJECTED_BY_APPROVER` and submit nothing. Nothing SHALL be submitted without an approval.
 
 #### Scenario: Approve FIN-001
-- **WHEN** a `COST_CENTRE_MANAGER` approves FIN-001
+- **WHEN** `colin` (`COST_CENTRE_MANAGER`) approves FIN-001
 - **THEN** the decision is submitted once and the run is `SUBMITTED`
 
 #### Scenario: Wrong role
-- **WHEN** a `COST_CENTRE_MANAGER` approves FIN-003
+- **WHEN** `colin` (`COST_CENTRE_MANAGER`) approves FIN-003
+- **THEN** the callback is refused and the run stays `AWAITING_APPROVAL`
+
+### Requirement: Authority register
+The approver's role SHALL come from the simulated authority register `fixtures/approvers.json`, never from the caller. The register SHALL hold one user per role: `alice` `AP_MANAGER`, `colin` `COST_CENTRE_MANAGER`, `diana` `DEPARTMENT_DIRECTOR`, `ethan` `EXECUTIVE_DIRECTOR`, `cliff` `CFO`, `celia` `CEO`.
+
+#### Scenario: Unknown approver
+- **WHEN** an approver ID that is not in the register approves a run
 - **THEN** the callback is refused and the run stays `AWAITING_APPROVAL`
 
 ### Requirement: Duplicate callback
-A callback ID that is already recorded SHALL return the stored response unchanged and SHALL NOT submit again.
+A callback ID that is already recorded SHALL return the stored response unchanged and SHALL NOT submit again. Without `--callback-id`, the CLI SHALL generate a new ID.
 
 #### Scenario: FIN-005 callback twice
-- **WHEN** the same `ap approve` with callback ID `cb-5` runs twice
+- **WHEN** the same `ap_assistant approve` with callback ID `cb-5` runs twice
 - **THEN** both outputs are identical and one decision exists for the run
 
 ### Requirement: Persist and audit
-Runs, approvals, decisions and events SHALL be stored in `data/ap.db`, so `ap get RUN_ID` and `ap approve` work in a new process. Each tool attempt SHALL be an event with timestamp, outcome and duration. No full account number SHALL be stored.
+Runs, approvals, decisions and events SHALL be stored in `data/ap.db`, so `ap_assistant get RUN_ID` and `ap_assistant approve` work in a new process. Each tool attempt SHALL be an event with timestamp, outcome and duration. No full account number SHALL be stored.
 
 #### Scenario: Get a run
-- **WHEN** the operator runs `ap get RUN_ID --events` in a new process
-- **THEN** the system prints the run and its events
+- **WHEN** the operator runs `ap_assistant get RUN_ID --events` in a new process
+- **THEN** the system prints the run, its approvals and rejections (approver, role, decision, time), its decisions and its events
 
 ### Requirement: Evaluate
-`ap eval` SHALL run FIN-001 to FIN-005 in a temporary database, approve each run with the required role (FIN-005 twice with the same callback ID), print PASS or FAIL per check, and exit 0 only if all pass.
+`ap_assistant eval` SHALL run FIN-001 to FIN-005 in a temporary database, approve each run with the register user who has the required role (FIN-005 twice with the same callback ID), print PASS or FAIL per check, and exit 0 only if all pass.
 
 #### Scenario: All cases pass
-- **WHEN** the operator runs `ap eval`
+- **WHEN** the operator runs `ap_assistant eval`
 - **THEN** FIN-001 approves and submits once, FIN-002 is `REJECT_DUPLICATE`, FIN-003 and FIN-004 are `HOLD_FOR_INFORMATION`, FIN-004 shows 3 PO attempts, FIN-005 returns identical responses, and the exit code is 0

@@ -1,9 +1,10 @@
-"""The `ap` command line. The database is data/ap.db, or the path in the AP_DB environment variable."""
+"""The `ap_assistant` command line. The database is data/ap.db, or the path in the AP_DB environment variable."""
 
 import json
 import os
 import tempfile
 from pathlib import Path
+from uuid import uuid4
 
 import typer
 from pydantic import ValidationError
@@ -21,7 +22,7 @@ def _store() -> Store:
 
 
 def _print(obj: dict) -> None:
-    typer.echo(json.dumps(obj, indent=2, default=str))
+    typer.echo(json.dumps(obj, indent=2, default=str, ensure_ascii=False))
 
 
 def _fail(message: str) -> None:
@@ -48,16 +49,23 @@ def get(run_id: str, events: bool = typer.Option(False, "--events", help="Includ
         _fail(str(exc))
 
 
+APPROVER_HELP = "Approver ID from fixtures/approvers.json, e.g. colin. The role comes from that register."
+CALLBACK_HELP = "ID of this approval message. Repeat an ID to simulate a duplicate delivery. Default: a new ID."
+
+
+def _new_callback_id() -> str:
+    return f"cb-{uuid4().hex[:12]}"
+
+
 @app.command()
 def approve(
     run_id: str,
-    approver: str = typer.Option(..., "--approver"),
-    role: str = typer.Option(..., "--role"),
-    callback_id: str = typer.Option(..., "--callback-id"),
+    approver: str = typer.Option(..., "--approver", help=APPROVER_HELP),
+    callback_id: str = typer.Option(None, "--callback-id", help=CALLBACK_HELP),
 ) -> None:
     """Approve the recommendation and submit the decision once."""
     try:
-        _print(workflow.approve(_store(), run_id, approver, role, callback_id))
+        _print(workflow.approve(_store(), run_id, approver, callback_id or _new_callback_id()))
     except WorkflowError as exc:
         _fail(str(exc))
 
@@ -65,13 +73,12 @@ def approve(
 @app.command()
 def reject(
     run_id: str,
-    approver: str = typer.Option(..., "--approver"),
-    role: str = typer.Option(..., "--role"),
-    callback_id: str = typer.Option(..., "--callback-id"),
+    approver: str = typer.Option(..., "--approver", help=APPROVER_HELP),
+    callback_id: str = typer.Option(None, "--callback-id", help=CALLBACK_HELP),
 ) -> None:
     """Reject the recommendation. Nothing is submitted."""
     try:
-        _print(workflow.reject(_store(), run_id, approver, role, callback_id))
+        _print(workflow.reject(_store(), run_id, approver, callback_id or _new_callback_id()))
     except WorkflowError as exc:
         _fail(str(exc))
 
@@ -80,7 +87,7 @@ def reject(
 EXPECTED = {
     "FIN-001": {"outcome": "APPROVE_FOR_POSTING"},
     "FIN-002": {"outcome": "REJECT_DUPLICATE", "exception": "DUPLICATE_RISK"},
-    "FIN-003": {"outcome": "HOLD_FOR_INFORMATION", "exception": "BANK_CHANGE", "refuse_role": "COST_CENTRE_MANAGER"},
+    "FIN-003": {"outcome": "HOLD_FOR_INFORMATION", "exception": "BANK_CHANGE", "refuse_approver": "colin"},
     "FIN-004": {"outcome": "HOLD_FOR_INFORMATION", "exception": "MISSING_PO", "po_attempts": 3},
     "FIN-005": {"outcome": "APPROVE_FOR_POSTING", "callback_twice": True},
 }
@@ -90,6 +97,7 @@ EXPECTED = {
 def evaluate() -> None:
     """Run FIN-001 to FIN-005 in a temporary database and print PASS or FAIL per check."""
     results: list[bool] = []
+    approvers_by_role = {a["role"]: a["approver_id"] for a in json.loads((tools.FIXTURES / "approvers.json").read_text())}
 
     def check(case_id: str, name: str, passed: bool) -> None:
         results.append(passed)
@@ -111,18 +119,19 @@ def evaluate() -> None:
                 attempts = [e for e in events if e["type"] == "tool_attempt" and e["tool"] == "get_purchase_order"]
                 check(case_id, f"{expected['po_attempts']} PO attempts", len(attempts) == expected["po_attempts"])
 
-            if "refuse_role" in expected:
+            if "refuse_approver" in expected:
                 try:
-                    workflow.approve(store, run_id, "eval", expected["refuse_role"], f"cb-{case_id}-wrong-role")
+                    workflow.approve(store, run_id, expected["refuse_approver"], f"cb-{case_id}-wrong-role")
                     refused = False
                 except WorkflowError:
                     refused = True
-                check(case_id, f"{expected['refuse_role']} approval refused", refused)
+                check(case_id, f"approval by {expected['refuse_approver']} refused", refused)
 
+            approver_id = approvers_by_role[rec["required_role"]]
             callback_id = "cb-5" if expected.get("callback_twice") else f"cb-{case_id}"
-            first = workflow.approve(store, run_id, "eval", rec["required_role"], callback_id)
+            first = workflow.approve(store, run_id, approver_id, callback_id)
             if expected.get("callback_twice"):
-                second = workflow.approve(store, run_id, "eval", rec["required_role"], callback_id)
+                second = workflow.approve(store, run_id, approver_id, callback_id)
                 check(case_id, "repeated callback returns identical response", first == second)
 
             final = workflow.get_run(store, run_id)

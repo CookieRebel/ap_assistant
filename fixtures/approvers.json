@@ -1,0 +1,8 @@
+[
+  {"approver_id": "alice", "name": "Alice", "role": "AP_MANAGER"},
+  {"approver_id": "colin", "name": "Colin", "role": "COST_CENTRE_MANAGER"},
+  {"approver_id": "diana", "name": "Diana", "role": "DEPARTMENT_DIRECTOR"},
+  {"approver_id": "ethan", "name": "Ethan", "role": "EXECUTIVE_DIRECTOR"},
+  {"approver_id": "cliff", "name": "Cliff", "role": "CFO"},
+  {"approver_id": "celia", "name": "Celia", "role": "CEO"}
+]

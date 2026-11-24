@@ -32,7 +32,20 @@ The `decisions` table has a unique `idempotency_key` (`<run_id>:<outcome>`). The
 
 ### Roles
 
-Limits from FIN-POL-003 §2: `COST_CENTRE_MANAGER` 10,000, `DEPARTMENT_DIRECTOR` 50,000, `EXECUTIVE_DIRECTOR` 250,000, `CFO` 1,000,000. A higher role is accepted. `AP_MANAGER` approves non-posting outcomes; the corpus names no approver for a hold, so this is an assumption. The role is asserted on the command line, not authenticated.
+Limits from FIN-POL-003 §2: `COST_CENTRE_MANAGER` 10,000, `DEPARTMENT_DIRECTOR` 50,000, `EXECUTIVE_DIRECTOR` 250,000, `CFO` 1,000,000, `CEO` above that. A higher role is accepted. `AP_MANAGER` approves non-posting outcomes; the corpus names no approver for a hold, so this is an assumption.
+
+The role comes from a simulated authority register (FIN-POL-003 §4), `fixtures/approvers.json`, with one user per role:
+
+| Approver ID | Role |
+|---|---|
+| `alice` | `AP_MANAGER` |
+| `colin` | `COST_CENTRE_MANAGER` |
+| `diana` | `DEPARTMENT_DIRECTOR` |
+| `ethan` | `EXECUTIVE_DIRECTOR` |
+| `cliff` | `CFO` |
+| `celia` | `CEO` |
+
+The approver ID itself is asserted on the command line, not authenticated. A production system takes it from the login.
 
 ### Fixtures
 

@@ -107,6 +107,12 @@ class PurchaseOrder(BaseModel):
     receipts: list[Receipt]
 
 
+class Approver(BaseModel):
+    approver_id: str
+    name: str
+    role: str
+
+
 # --- Reconciliation and recommendation ------------------------------------------
 
 

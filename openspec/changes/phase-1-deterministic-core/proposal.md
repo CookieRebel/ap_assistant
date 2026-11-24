@@ -6,7 +6,7 @@ The brief (`docs/take_home_test.md`) asks for an accounts-payable assistant that
 
 ## What Changes
 
-- A CLI `ap` with `start`, `get`, `approve`, `reject` and `eval`.
+- A CLI `ap_assistant` with `start`, `get`, `approve`, `reject` and `eval`.
 - Three simulated tools over JSON fixtures: `check_invoice_history`, `get_vendor_record`, `get_purchase_order`, each with a timeout and 3 attempts.
 - A reconciler with rules taken from the current policies, and a recommendation that picks the most severe outcome.
 - An approval step before an idempotent `submit_finance_decision`.
