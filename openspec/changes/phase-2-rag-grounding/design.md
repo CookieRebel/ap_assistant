@@ -10,8 +10,8 @@ Phase 1 is built and archived (`openspec/specs/invoice-processing/spec.md`). `st
 
 ```
 src/ap_assistant/
-  ingest.py     front matter + split by "## " → chunks table
-  retrieval.py  BM25 index over the chunks; retrieve_finance_documents(); retrieval event
+  ingestion.py  front matter + split by "## " → chunks table
+  financial_document_retrieval.py  BM25 index over the chunks; retrieve_finance_documents(); retrieval event
   llm.py        ModelClient protocol; OpenAIModel (openai SDK); OfflineModel (deterministic)
   grounding.py  the bounded loop, validate(), repair
   workflow.py   start split into saved steps; resume()
@@ -77,5 +77,5 @@ There is no fallback that writes a grounding without the model. FIN-POL-003 §5 
 - [The offline model passes by construction] → It is labelled `offline` in every run; only the live run measures the model.
 - [The number check is a heuristic] → It catches invented amounts, the main risk. It can reject a valid answer that restates a number in another form; the run then stops in `GROUNDING_FAILED`, and `resume` retries.
 - [A live model that keeps failing blocks the run] → Intended: no approval without citations. The errors on the run show why.
-- [The ingested version can differ from the version a rule in `reconcile.py` cites] → Phase 2 does not check it; the citation shows the ingested version, so a reviewer sees the difference.
+- [The ingested version can differ from the version a rule in `reconciliation.py` cites] → Phase 2 does not check it; the citation shows the ingested version, so a reviewer sees the difference.
 - [FIN-POL-004 is classified `restricted`] → Phase 2 does not restrict access by classification; the classification is in the metadata.

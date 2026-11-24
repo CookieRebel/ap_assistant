@@ -28,4 +28,4 @@ Not in this phase (phase 3): the LLM case-text classifier, the fraud-indicator c
 
 ## Impact
 
-New modules `ingest.py`, `retrieval.py`, `grounding.py` and `llm.py` in `src/ap_assistant/`; changes to `workflow.py`, `store.py` and `cli.py`. A new table `chunks`, and new columns `evidence_json` and `grounding_json` on `runs`. Uses the already pinned `rank-bm25` and `openai` packages. A live model needs `OPENAI_API_KEY` and network access; unit tests and the offline eval do not.
+New modules `ingestion.py`, `financial_document_retrieval.py`, `grounding.py` and `llm.py` in `src/ap_assistant/`; changes to `workflow.py`, `store.py` and `cli.py`. A new table `chunks`, and new columns `evidence_json` and `grounding_json` on `runs`. Uses the already pinned `rank-bm25` and `openai` packages. A live model needs `OPENAI_API_KEY` and network access; unit tests and the offline eval do not.

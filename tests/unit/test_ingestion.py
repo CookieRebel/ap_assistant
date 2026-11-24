@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ap_assistant.ingest import IngestError, read_corpus
+from ap_assistant.ingestion import IngestError, read_corpus
 from ap_assistant.store import Store
 
 CORPUS = Path(__file__).parents[2] / "corpus"

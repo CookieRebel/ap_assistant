@@ -10,7 +10,8 @@ import json
 from ap_assistant import tools
 from ap_assistant.grounding import GroundingFailed, ground
 from ap_assistant.llm import ModelClient, model_from_env
-from ap_assistant.reconcile import allowed_roles, recommend, reconcile
+from ap_assistant.recommendation import allowed_roles, recommend
+from ap_assistant.reconciliation import reconcile
 from ap_assistant.schemas import CaseRequest, Evidence, Outcome, Recommendation, RunState
 from ap_assistant.store import Store
 

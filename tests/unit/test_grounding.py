@@ -5,9 +5,10 @@ import pytest
 
 from ap_assistant import tools
 from ap_assistant.grounding import GroundingFailed, ground
-from ap_assistant.ingest import read_corpus
+from ap_assistant.ingestion import read_corpus
 from ap_assistant.llm import ModelReply, OfflineModel, OpenAIModel, ToolCall, model_from_env
-from ap_assistant.reconcile import recommend, reconcile
+from ap_assistant.recommendation import recommend
+from ap_assistant.reconciliation import reconcile
 from ap_assistant.schemas import Outcome
 from ap_assistant.store import Store
 

@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from ap_assistant.ingest import read_corpus
-from ap_assistant.retrieval import Index, NoChunksError, RetrievalArgs, retrieve_finance_documents
+from ap_assistant.ingestion import read_corpus
+from ap_assistant.financial_document_retrieval import Index, NoChunksError, RetrievalArgs, retrieve_finance_documents
 from ap_assistant.store import Store
 
 ROOT = Path(__file__).parents[2]

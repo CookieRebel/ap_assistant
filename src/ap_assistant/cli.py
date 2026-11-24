@@ -12,9 +12,9 @@ from dotenv import load_dotenv
 from pydantic import ValidationError
 
 from ap_assistant import tools, workflow
-from ap_assistant.ingest import IngestError, read_corpus
+from ap_assistant.ingestion import IngestError, read_corpus
 from ap_assistant.llm import model_from_env
-from ap_assistant.retrieval import RetrievalArgs, retrieve_finance_documents
+from ap_assistant.financial_document_retrieval import RetrievalArgs, retrieve_finance_documents
 from ap_assistant.schemas import CaseRequest
 from ap_assistant.store import Store
 from ap_assistant.workflow import SimulatedCrash, WorkflowError

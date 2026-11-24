@@ -14,7 +14,7 @@ from decimal import Decimal, InvalidOperation
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ap_assistant.llm import ModelClient, ToolCall
-from ap_assistant.retrieval import RetrievalArgs, retrieve_finance_documents
+from ap_assistant.financial_document_retrieval import RetrievalArgs, retrieve_finance_documents
 from ap_assistant.schemas import Citation, Grounding, Outcome, Recommendation, RetrievedChunk
 from ap_assistant.store import Store
 

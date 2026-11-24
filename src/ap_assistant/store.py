@@ -68,7 +68,7 @@ class Store:
         self.conn = sqlite3.connect(path, isolation_level=None)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
-        self.chunk_index = None  # the BM25 index, built by retrieval.index_for() on first use
+        self.chunk_index = None  # the BM25 index, built by financial_document_retrieval.index_for() on first use
         existing = {row["name"] for row in self.conn.execute("PRAGMA table_info(runs)")}
         for column in ADDED_RUN_COLUMNS:
             if column not in existing:

@@ -1,7 +1,8 @@
-"""The reconciliation checks and the recommendation.
+"""The reconciliation checks: the evidence against the policy rules, as findings and calculations.
 
 The rules are taken by hand from the current policies in corpus/. Each finding cites its document, version and section.
 All arithmetic uses Decimal. Case text (notes and attachments) is never read here, so it cannot change a check.
+recommendation.py turns the findings into an outcome.
 """
 
 from decimal import ROUND_HALF_UP, Decimal
@@ -12,7 +13,6 @@ from ap_assistant.schemas import (
     InvoiceHistory,
     Outcome,
     PurchaseOrder,
-    Recommendation,
     VendorRecord,
 )
 
@@ -30,19 +30,6 @@ TOLERANCE = {
     "goods": (Decimal("50"), Decimal("0.01")),
     "services": (Decimal("100"), Decimal("0.02")),
 }
-
-# Roles in ascending order of authority, with their maximum approval in AUD. FIN-POL-003 §2. None = no upper limit.
-ROLE_LIMITS: list[tuple[str, Decimal | None]] = [
-    ("COST_CENTRE_MANAGER", Decimal("10000")),
-    ("DEPARTMENT_DIRECTOR", Decimal("50000")),
-    ("EXECUTIVE_DIRECTOR", Decimal("250000")),
-    ("CFO", Decimal("1000000")),
-    ("CEO", None),
-]
-# Approves an outcome that does not post. The corpus names no approver for a hold or a rejection: an assumption.
-NON_POSTING_APPROVER = "AP_MANAGER"
-
-SEVERITY = [Outcome.APPROVE_FOR_POSTING, Outcome.HOLD_FOR_INFORMATION, Outcome.REJECT_DUPLICATE]
 
 CENT = Decimal("0.01")
 
@@ -207,46 +194,3 @@ def reconcile(
         findings += line_findings
 
     return findings, calculations, unknowns
-
-
-def required_role_for(amount: Decimal) -> str:
-    """The lowest role whose limit covers the amount. FIN-POL-003 §2."""
-    for role, limit in ROLE_LIMITS:
-        if limit is None or amount <= limit:
-            return role
-    raise AssertionError("ROLE_LIMITS ends with an unlimited role")
-
-
-def allowed_roles(outcome: Outcome, required_role: str) -> set[str]:
-    """The roles that may approve: the required role or a higher one for a posting, else only AP_MANAGER."""
-    if outcome != Outcome.APPROVE_FOR_POSTING:
-        return {NON_POSTING_APPROVER}
-    names = [role for role, _ in ROLE_LIMITS]
-    return set(names[names.index(required_role) :])
-
-
-NEXT_ACTION = {
-    Outcome.APPROVE_FOR_POSTING: "Approve to post the invoice for payment.",
-    Outcome.HOLD_FOR_INFORMATION: "Approve to place the invoice on hold and request the missing information.",
-    Outcome.REJECT_DUPLICATE: "Approve to reject the invoice as a duplicate.",
-}
-
-
-def recommend(history: InvoiceHistory, findings: list[Finding], calculations: list[Calculation], unknowns: list[str]) -> Recommendation:
-    """Picks the most severe failed outcome and the role that must approve it."""
-    failed = [f for f in findings if not f.passed]
-    outcome = max((f.outcome for f in failed), key=SEVERITY.index, default=Outcome.APPROVE_FOR_POSTING)
-    amount = history.invoice.gross
-    required_role = required_role_for(amount) if outcome == Outcome.APPROVE_FOR_POSTING else NON_POSTING_APPROVER
-    exceptions = list(dict.fromkeys(f.category for f in failed))
-    return Recommendation(
-        outcome=outcome,
-        exceptions=exceptions,
-        required_role=required_role,
-        amount=amount,
-        currency=history.invoice.currency,
-        findings=findings,
-        calculations=calculations,
-        unknowns=unknowns,
-        next_action=NEXT_ACTION[outcome],
-    )

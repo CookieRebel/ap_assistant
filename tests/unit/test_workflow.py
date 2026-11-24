@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from ap_assistant import workflow
-from ap_assistant.ingest import read_corpus
+from ap_assistant.ingestion import read_corpus
 from ap_assistant.llm import ModelReply
 from ap_assistant.schemas import CaseRequest
 from ap_assistant.store import Store

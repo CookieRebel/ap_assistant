@@ -1,7 +1,8 @@
 from decimal import Decimal
 
 from ap_assistant import tools
-from ap_assistant.reconcile import allowed_roles, recommend, reconcile, required_role_for
+from ap_assistant.recommendation import allowed_roles, recommend, required_role_for
+from ap_assistant.reconciliation import reconcile
 from ap_assistant.schemas import Outcome
 
 
