@@ -52,7 +52,7 @@ sequenceDiagram
 ```
 
 - The workflow saves the run in SQLite (`store.py`) after each step, so a stopped run can resume.
-- `approve` and `reject` call the workflow again, which records the decision and submits it once.
+- `approve` records the approval and submits the decision once. `reject` records the rejection and submits nothing.
 
 ## Quick start
 
@@ -83,6 +83,8 @@ The CLI reads `.env` from the folder it runs in. A value in `.env` wins over the
 | `OPENAI_API_KEY` | your key | Needed only for an OpenAI model. |
 
 ## Commands
+
+Run each command with `uv run`, for example `uv run ap_assistant get RUN-001`.
 
 | Command | What it does |
 |---|---|
@@ -139,7 +141,7 @@ Approvers, from the simulated authority register [fixtures/approvers.json](fixtu
 ## Assumptions
 
 - `AP_MANAGER` approves holds and duplicate rejections. The corpus names no approver for an outcome that does not post.
-- A higher role may approve a posting below its limit, for example a CFO may approve AUD 3,473.80.
+- A higher role may also approve, for example a CFO may approve the AUD 3,473.80 that needs a Cost Centre Manager.
 - Approval limits apply to the invoice gross amount, including tax (FIN-POL-003 §1).
 - The approver ID is asserted on the command line. The role comes from the register, not from the caller.
 
