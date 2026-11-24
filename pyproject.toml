@@ -1,0 +1,35 @@
+[project]
+name = "ap-assistant"
+version = "0.1.0"
+description = "Accounts-payable assistant: a bounded, approval-gated invoice-processing agent with RAG over finance policy."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "pydantic==2.10.6",
+    "rank-bm25==0.2.2",
+    "tenacity==9.0.0",
+    "typer==0.15.1",
+    "openai==1.61.1",
+]
+
+[project.scripts]
+ap = "ap_assistant.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ap_assistant"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "live: calls the configured LLM provider; needs AP_LLM_PROVIDER=openai and an API key",
+]
+addopts = "-m 'not live'"
