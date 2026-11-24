@@ -83,6 +83,11 @@ def get_purchase_order(po_number: str) -> PurchaseOrder:
     return PurchaseOrder.model_validate(raw)
 
 
+def list_approvers() -> list[Approver]:
+    """Every user in the simulated authority register."""
+    return [Approver.model_validate(a) for a in _load("approvers.json")]
+
+
 def get_approver(approver_id: str) -> Approver | None:
     """Looks up the approver's role in the simulated authority register. Returns None for an unknown approver."""
     raw = next((a for a in _load("approvers.json") if a["approver_id"] == approver_id), None)

@@ -11,9 +11,9 @@ import typer
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
-from ap_assistant import tools, workflow
+from ap_assistant import output, tools, workflow
 from ap_assistant.ingestion import IngestError, read_corpus
-from ap_assistant.llm import model_from_env
+from ap_assistant.llm import ModelClient, OfflineModel, model_from_env
 from ap_assistant.financial_document_retrieval import RetrievalArgs, retrieve_finance_documents
 from ap_assistant.schemas import CaseRequest
 from ap_assistant.store import Store
@@ -56,12 +56,25 @@ def ingest(corpus_dir: Path = typer.Argument(Path("corpus"), help="Folder with t
 
 
 CRASH_EXIT_CODE = 75
+JSON_OPTION = typer.Option(False, "--json", help="Print the full JSON instead of the summary.")
+OFFLINE_OPTION = typer.Option(False, "--offline", help="Use the offline model, whatever AP_LLM_MODEL in .env says.")
 
 
-def _run_step(step) -> None:
+def _model(offline: bool) -> ModelClient:
+    return OfflineModel() if offline else model_from_env()
+
+
+def _print_run(run: dict, as_json: bool, with_events: bool = False) -> None:
+    if as_json:
+        _print(run)
+    else:
+        typer.echo(output.format_run(run, with_events))
+
+
+def _run_step(step, as_json: bool) -> None:
     """Runs start or resume. AP_CRASH_AFTER=<state> stops the process right after that state is saved (exit 75)."""
     try:
-        _print(step(os.environ.get("AP_CRASH_AFTER") or None))
+        _print_run(step(os.environ.get("AP_CRASH_AFTER") or None), as_json)
     except WorkflowError as exc:
         _fail(str(exc))
     except SimulatedCrash as exc:
@@ -70,26 +83,30 @@ def _run_step(step) -> None:
 
 
 @app.command()
-def start(case_file: Path) -> None:
+def start(case_file: Path, as_json: bool = JSON_OPTION, offline: bool = OFFLINE_OPTION) -> None:
     """Start a run from a case JSON file and process it until it waits for approval."""
     try:
         request = CaseRequest.model_validate_json(case_file.read_text())
     except (OSError, ValidationError) as exc:
         _fail(str(exc))
-    _run_step(lambda crash_after: workflow.start(_store(), request, crash_after=crash_after))
+    _run_step(lambda crash_after: workflow.start(_store(), request, _model(offline), crash_after), as_json)
 
 
 @app.command()
-def resume(run_id: str) -> None:
+def resume(run_id: str, as_json: bool = JSON_OPTION, offline: bool = OFFLINE_OPTION) -> None:
     """Continue a run that stopped before AWAITING_APPROVAL, or retry a failed grounding."""
-    _run_step(lambda crash_after: workflow.resume(_store(), run_id, crash_after=crash_after))
+    _run_step(lambda crash_after: workflow.resume(_store(), run_id, _model(offline), crash_after), as_json)
 
 
 @app.command()
-def get(run_id: str, events: bool = typer.Option(False, "--events", help="Include the audit events.")) -> None:
+def get(
+    run_id: str,
+    events: bool = typer.Option(False, "--events", help="Include the audit events."),
+    as_json: bool = JSON_OPTION,
+) -> None:
     """Print a run, its recommendation and its decisions."""
     try:
-        _print(workflow.get_run(_store(), run_id, with_events=events))
+        _print_run(workflow.get_run(_store(), run_id, with_events=events), as_json, with_events=events)
     except WorkflowError as exc:
         _fail(str(exc))
 
@@ -102,17 +119,28 @@ def _new_callback_id() -> str:
     return f"cb-{uuid4().hex[:12]}"
 
 
+def _decide(decide, run_id: str, approver: str, callback_id: str | None, as_json: bool) -> None:
+    """Runs workflow.approve or workflow.reject and prints the response or its summary."""
+    store = _store()
+    try:
+        response = decide(store, run_id, approver, callback_id or _new_callback_id())
+    except WorkflowError as exc:
+        _fail(str(exc))
+    if as_json:
+        _print(response)
+    else:
+        typer.echo(output.format_decision(response, workflow.get_run(store, response["run_id"])))
+
+
 @app.command()
 def approve(
     run_id: str,
     approver: str = typer.Option(..., "--approver", help=APPROVER_HELP),
     callback_id: str = typer.Option(None, "--callback-id", help=CALLBACK_HELP),
+    as_json: bool = JSON_OPTION,
 ) -> None:
     """Approve the recommendation and submit the decision once."""
-    try:
-        _print(workflow.approve(_store(), run_id, approver, callback_id or _new_callback_id()))
-    except WorkflowError as exc:
-        _fail(str(exc))
+    _decide(workflow.approve, run_id, approver, callback_id, as_json)
 
 
 @app.command()
@@ -120,12 +148,10 @@ def reject(
     run_id: str,
     approver: str = typer.Option(..., "--approver", help=APPROVER_HELP),
     callback_id: str = typer.Option(None, "--callback-id", help=CALLBACK_HELP),
+    as_json: bool = JSON_OPTION,
 ) -> None:
     """Reject the recommendation. Nothing is submitted."""
-    try:
-        _print(workflow.reject(_store(), run_id, approver, callback_id or _new_callback_id()))
-    except WorkflowError as exc:
-        _fail(str(exc))
+    _decide(workflow.reject, run_id, approver, callback_id, as_json)
 
 
 # Expected results per case: the outcome, an exception category that must be present, and extra checks.
@@ -143,12 +169,12 @@ def _case(case_id: str) -> CaseRequest:
 
 
 @app.command("eval")
-def evaluate() -> None:
+def evaluate(offline: bool = OFFLINE_OPTION) -> None:
     """Ingest the corpus into a temporary database, run the retrieval checks, FIN-001 to FIN-005 and a
     crash-and-resume, and print PASS or FAIL per check. Uses the model that AP_LLM_MODEL configures."""
     results: list[bool] = []
     approvers_by_role = {a["role"]: a["approver_id"] for a in json.loads((tools.FIXTURES / "approvers.json").read_text())}
-    model = model_from_env()
+    model = _model(offline)
     typer.echo(f"model: {model.name}\n")
 
     def check(case_id: str, name: str, passed: bool) -> None:

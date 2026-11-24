@@ -64,6 +64,13 @@ The provider is OpenAI. The model name and the API key SHALL come from the envir
 - **WHEN** `AP_LLM_MODEL` is unset
 - **THEN** the run completes offline, and the grounding shows model `offline`
 
+### Requirement: Run offline on request
+`ap_assistant eval`, `start` and `resume` SHALL accept `--offline`, which uses the offline model whatever `AP_LLM_MODEL` says, and makes no model call over the network.
+
+#### Scenario: Offline evaluation with a live model in .env
+- **WHEN** `.env` sets an OpenAI model and the operator runs `ap_assistant eval --offline`
+- **THEN** the output starts with `model: offline` and no OpenAI call is made
+
 ### Requirement: Treat retrieved text as data
 Retrieved chunk text SHALL reach the model inside delimiters that label it as data with its document status. Instructions inside retrieved text SHALL NOT change the validation, the outcome or the approval.
 

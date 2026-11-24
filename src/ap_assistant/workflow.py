@@ -189,6 +189,7 @@ def get_run(store: Store, run_id: str, with_events: bool = False) -> dict:
         "case_id": run["case_id"],
         "state": run["state"],
         "error": run["error"],
+        "request": json.loads(run["request_json"]),
         "recommendation": json.loads(run["recommendation_json"]) if run["recommendation_json"] else None,
         "grounding": json.loads(run["grounding_json"]) if run["grounding_json"] else None,
         "approvals": store.list_approvals(run_id),
