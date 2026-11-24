@@ -58,7 +58,7 @@ A rejected answer SHALL get one repair call that lists the errors. If the repair
 - **THEN** the grounding is stored and the run is `AWAITING_APPROVAL`
 
 ### Requirement: Configure the model outside the code
-The provider is OpenAI. The model name, the API key and an optional endpoint SHALL come from the environment variables `AP_LLM_MODEL`, `OPENAI_API_KEY` and `AP_LLM_BASE_URL` (default: the OpenAI API). When `AP_LLM_MODEL` is unset or `offline`, a deterministic offline model SHALL run. The grounding SHALL record the model name used.
+The provider is OpenAI. The model name and the API key SHALL come from the environment variables `AP_LLM_MODEL` and `OPENAI_API_KEY`, read from `.env`. When `AP_LLM_MODEL` is unset or `offline`, a deterministic offline model SHALL run. The grounding SHALL record the model name used.
 
 #### Scenario: No model configured
 - **WHEN** `AP_LLM_MODEL` is unset

@@ -1,7 +1,6 @@
 """The model abstraction. The grounding loop knows only ModelClient; the provider and model come from the environment.
 
-AP_LLM_MODEL      model name; unset or "offline" selects OfflineModel
-AP_LLM_BASE_URL   optional endpoint; default: the OpenAI API
+AP_LLM_MODEL      OpenAI model name; unset or "offline" selects OfflineModel
 OPENAI_API_KEY    read by the openai SDK
 """
 
@@ -42,9 +41,8 @@ class ModelClient(Protocol):
 
 
 class OpenAIModel:
-    def __init__(self, name: str, base_url: str | None = None):
+    def __init__(self, name: str):
         self.name = name
-        self.base_url = base_url
         self._client = None
 
     def complete(self, messages: list[dict], tools: list[dict]) -> ModelReply:
@@ -52,7 +50,7 @@ class OpenAIModel:
         if self._client is None:
             from openai import OpenAI
 
-            self._client = OpenAI(base_url=self.base_url, timeout=30, max_retries=2)
+            self._client = OpenAI(timeout=30, max_retries=2)
         response = self._client.chat.completions.create(model=self.name, messages=messages, tools=tools)
         message = response.choices[0].message
         return ModelReply(
@@ -125,4 +123,4 @@ def model_from_env() -> ModelClient:
     name = os.environ.get("AP_LLM_MODEL", "").strip()
     if name in ("", "offline"):
         return OfflineModel()
-    return OpenAIModel(name, os.environ.get("AP_LLM_BASE_URL") or None)
+    return OpenAIModel(name)

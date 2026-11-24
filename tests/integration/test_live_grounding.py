@@ -1,7 +1,7 @@
 """Model-dependent: grounds FIN-001 to FIN-005 with the configured OpenAI model.
 
-Skipped by default (pyproject addopts: -m 'not live'). Run with:
-    AP_LLM_MODEL=<model> OPENAI_API_KEY=<key> uv run pytest -m live
+Skipped by default (pyproject addopts: -m 'not live'). Set AP_LLM_MODEL and OPENAI_API_KEY in .env, then run:
+    uv run pytest -m live
 It sends the recommendations (no case notes, no attachments, no bank details) to OpenAI and costs a few cents.
 """
 
@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
 
 from ap_assistant import workflow
 from ap_assistant.ingest import read_corpus
@@ -17,6 +18,7 @@ from ap_assistant.schemas import CaseRequest
 from ap_assistant.store import Store
 
 ROOT = Path(__file__).parents[2]
+load_dotenv(ROOT / ".env", override=True)  # the same rule as the CLI: .env wins over the shell
 
 pytestmark = [
     pytest.mark.live,

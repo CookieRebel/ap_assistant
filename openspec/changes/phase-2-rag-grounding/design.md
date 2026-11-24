@@ -35,7 +35,8 @@ src/ap_assistant/
 ### Model abstraction
 
 - `ModelClient.complete(messages, tools) -> ModelReply` (text or tool calls). The workflow knows only this protocol.
-- `OpenAIModel` uses the `openai` SDK chat completions with tool calling, `timeout=30`, `max_retries=2`. The provider is OpenAI; `AP_LLM_BASE_URL` is optional and defaults to the OpenAI API.
+- `OpenAIModel` uses the `openai` SDK chat completions with tool calling, `timeout=30`, `max_retries=2`. The provider is OpenAI.
+- The CLI loads `.env` from the current folder with `override=True`, so `.env` wins over the shell. Unit tests run in an empty temporary folder, so they never read the repo's `.env`.
 - `OfflineModel` is chosen when `AP_LLM_MODEL` is unset or `offline`. Turn 1: one retrieval per required citation, with the query `<document_id> <finding> <finding detail>` and `top_k=10`. Turn 2: for each, the expected section if it was retrieved (else the top chunk of that document), the line or sentence that shares most words with the finding as the quote, and a fixed explanation. It passes validation by construction, so an offline eval proves the plumbing, not model quality.
 
 ### Grounding loop

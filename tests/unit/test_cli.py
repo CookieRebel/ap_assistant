@@ -1,9 +1,17 @@
 import json
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
 from ap_assistant.cli import app
+
+ROOT = Path(__file__).parents[2]
+CORPUS = str(ROOT / "corpus")
+
+
+def case(case_id):
+    return str(ROOT / "fixtures" / "cases" / f"{case_id}.json")
 
 
 @pytest.fixture
@@ -20,7 +28,7 @@ def test_missing_approver_is_refused(command, db):
 
 
 def test_start_without_ingest_is_refused(db):
-    result = CliRunner().invoke(app, ["start", "fixtures/cases/FIN-001.json"])
+    result = CliRunner().invoke(app, ["start", case("FIN-001")])
 
     assert result.exit_code == 1
     assert "ap_assistant ingest" in result.output
@@ -28,10 +36,10 @@ def test_start_without_ingest_is_refused(db):
 
 def test_crash_exit_code_and_resume(db, monkeypatch):
     runner = CliRunner()
-    runner.invoke(app, ["ingest", "corpus"])
+    runner.invoke(app, ["ingest", CORPUS])
     monkeypatch.setenv("AP_CRASH_AFTER", "RECOMMENDED")
 
-    crashed = runner.invoke(app, ["start", "fixtures/cases/FIN-002.json"])
+    crashed = runner.invoke(app, ["start", case("FIN-002")])
     monkeypatch.delenv("AP_CRASH_AFTER")
     resumed = runner.invoke(app, ["resume", "RUN-001"])
 
@@ -41,8 +49,8 @@ def test_crash_exit_code_and_resume(db, monkeypatch):
 
 def test_approve_without_callback_id_generates_one(db):
     runner = CliRunner()
-    runner.invoke(app, ["ingest", "corpus"])
-    run_id = json.loads(runner.invoke(app, ["start", "fixtures/cases/FIN-001.json"]).output)["run_id"]
+    runner.invoke(app, ["ingest", CORPUS])
+    run_id = json.loads(runner.invoke(app, ["start", case("FIN-001")]).output)["run_id"]
 
     result = runner.invoke(app, ["approve", run_id, "--approver", "colin"])
 
@@ -50,3 +58,13 @@ def test_approve_without_callback_id_generates_one(db):
     response = json.loads(result.output)
     assert response["state"] == "SUBMITTED"
     assert response["callback_id"].startswith("cb-")
+
+
+def test_env_file_wins_over_the_shell(tmp_path, monkeypatch):
+    (tmp_path / ".env").write_text("AP_DB=from-env-file.db\n")
+    monkeypatch.setenv("AP_DB", "from-shell.db")
+
+    CliRunner().invoke(app, ["get", "RUN-999"])
+
+    assert (tmp_path / "from-env-file.db").exists()
+    assert not (tmp_path / "from-shell.db").exists()

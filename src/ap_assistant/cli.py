@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import typer
+from dotenv import load_dotenv
 from pydantic import ValidationError
 
 from ap_assistant import tools, workflow
@@ -19,6 +20,12 @@ from ap_assistant.store import Store
 from ap_assistant.workflow import SimulatedCrash, WorkflowError
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
+
+
+@app.callback()
+def main() -> None:
+    """Accounts-payable assistant. Reads .env from the current folder; .env wins over a variable set in the shell."""
+    load_dotenv(Path(".env"), override=True)
 
 
 def _store() -> Store:
